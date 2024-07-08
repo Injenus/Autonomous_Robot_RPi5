@@ -12,7 +12,7 @@ const int L_PWM_right = 9;  // PB1 / OC1A
 const int R_PWM_right = 10; // PB2 / OC1B
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     while (!Serial) {
         ; // Дождитесь открытия порта
     }
