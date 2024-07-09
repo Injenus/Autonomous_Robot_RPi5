@@ -3,7 +3,7 @@ from picamera2 import Picamera2
 import time
 import cv2
 
-
+#just for test push
 wh_sign, wh_road = (1280, 720), (640, 360)
 cam_road = Picamera2(1)
 cam_sign = Picamera2(0)
