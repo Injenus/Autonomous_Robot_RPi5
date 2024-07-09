@@ -13,7 +13,7 @@ window_size = (180, 60)
 screen = pygame.display.set_mode(window_size)
 pygame.display.set_caption("crutch")
 
-max_speed = 1000
+max_speed = 255
 acceleration = 100
 
 left_wheel_speed = 0
@@ -86,7 +86,7 @@ while running:
 
     try:
         checksum = left_wheel_speed * 2 + right_wheel_speed * 4
-        message = f"s{left_wheel_speed},{right_wheel_speed},{checksum}f"
+        message = f"s,{left_wheel_speed},{right_wheel_speed},{checksum},f"
         ser.write(message.encode())
         print(f"Sent: {message}")
     except Exception as e:
