@@ -11,10 +11,10 @@ const int greenLedPin = 4;
 const int redLedPin = 7;
 
 // Пины для ШИМ
-const int L_PWM_left = 5;   // PD5 / OC0B
-const int R_PWM_left = 6;   // PD6 / OC0A
-const int L_PWM_right = 9;  // PB1 / OC1A
-const int R_PWM_right = 10; // PB2 / OC1B
+const int L_PWM_left = 9;   // PD5 / OC0B
+const int R_PWM_left = 10;   // PD6 / OC0A
+const int L_PWM_right = 6;  // PB1 / OC1A
+const int R_PWM_right = 5; // PB2 / OC1B
 
 void setup() {
   Serial.begin(115200);
@@ -29,8 +29,8 @@ void setup() {
   pinMode(L_PWM_right, OUTPUT);
   pinMode(R_PWM_right, OUTPUT);
 
-  // Настройка таймеров для ШИМ
-  setupPWM();
+  // Настройка таймеров для ШИМ  
+  //setupPWM();
 }
 
 
@@ -58,11 +58,27 @@ void loop() {
     }
 
     // Управление ШИМ
-    updatePWM(&L_PWM_left, &R_PWM_left, &num1);
-    updatePWM(&L_PWM_right, &R_PWM_right, &num2);
+    //updatePWM(&L_PWM_left, &R_PWM_left, &num1);
+    //updatePWM(&L_PWM_right, &R_PWM_right, &num2);
     Serial.print(num1);
     Serial.print(',');
     Serial.println(num2);
+    if (num1>=0){
+      analogWrite(L_PWM_left, 0);
+      analogWrite(R_PWM_left, num1);
+    }
+    else{
+      analogWrite(L_PWM_left, -num1);
+      analogWrite(R_PWM_left, 0);
+    }
+    if (num2>=0){
+      analogWrite(L_PWM_right, 0);
+      analogWrite(R_PWM_right, num2);
+    }
+    else{
+      analogWrite(L_PWM_right, -num2);
+      analogWrite(R_PWM_right, 0);
+    }
 
   }
 }

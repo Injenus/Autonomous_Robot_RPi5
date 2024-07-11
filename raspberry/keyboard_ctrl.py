@@ -1,5 +1,6 @@
 import pygame
 import serial
+import time
 
 port = '/dev/ttyUSB0'
 baudrate = 115200
@@ -13,8 +14,8 @@ window_size = (180, 60)
 screen = pygame.display.set_mode(window_size)
 pygame.display.set_caption("crutch")
 
-max_speed = 255
-acceleration = 100
+max_speed = 75
+acceleration = 10
 
 left_wheel_speed = 0
 right_wheel_speed = 0
@@ -23,6 +24,8 @@ moving_forward = False
 moving_backward = False
 turning_left = False
 turning_right = False
+
+timer = time.time()
 
 running = True
 while running:
@@ -52,22 +55,27 @@ while running:
     else:
         turning_right = False
 
+    #if time.time() - timer >= 0.05:
     if moving_forward:
         left_wheel_speed = max_speed
         right_wheel_speed = max_speed
+        # left_wheel_speed += acceleration
+        # right_wheel_speed += acceleration
     elif moving_backward:
         left_wheel_speed = max_speed
         right_wheel_speed = max_speed
+        # left_wheel_speed -= acceleration
+        # right_wheel_speed -= acceleration
     else:
         left_wheel_speed = 0
         right_wheel_speed = 0
 
     if turning_left:
-        left_wheel_speed -= max_speed//2
-        right_wheel_speed += max_speed//2
+        left_wheel_speed -= int(max_speed*0.8)
+        right_wheel_speed += int(max_speed*0.8)
     elif turning_right:
-        left_wheel_speed += max_speed//2
-        right_wheel_speed -= max_speed//2
+        left_wheel_speed += int(max_speed*0.8)
+        right_wheel_speed -= int(max_speed*0.8) 
 
     if moving_backward:
         left_wheel_speed *= -1
@@ -92,7 +100,7 @@ while running:
     except Exception as e:
         print(f'ERROR {e}')      
 
-    pygame.time.delay(5)
+    pygame.time.delay(50)
     screen.fill((42, 42, 42))
     pygame.display.flip()
 
