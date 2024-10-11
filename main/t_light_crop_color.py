@@ -250,6 +250,14 @@ while True:
     #cv2.imshow('Signs', cv2.bitwise_and(frame, mask))
     #time.sleep(0.1)
 
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (3, 3), 1.0)
+    equal = cv2.equalizeHist(gray)
+    equal = np.where(equal >= 220, 255, 0).astype(np.uint8)
+    br_mask = equal == 0
+    br_mask = np.stack([br_mask]*3, axis=-1)
+    frame[br_mask] = 0
+
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     # Get current positions of the trackbars
@@ -275,7 +283,7 @@ while True:
         if 15< cv2.contourArea(contour) < 80:  # Filter small contours
             x, y, w, h = cv2.boundingRect(contour)
             if 0.85 < w/h < 1.15: 
-                if 6 <= w <= 11 and  6 <= h <= 11: 
+                if 8 <= w <= 9 and  8 <= h <= 9: 
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 1)
                     print(w,h)
         
@@ -308,5 +316,8 @@ while True:
             ret, frame = read_frame(current_frame_index)
 
 # Release the video capture and destroy all windows
+print(f'h {h_lower} {h_upper}')
+print(f's {s_lower} {s_upper}')
+print(f'v {v_lower} {v_upper}')
 cap.release()
 cv2.destroyAllWindows()

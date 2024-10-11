@@ -71,7 +71,7 @@ def get_signs(frame):
 
                 l, m, r = av_col_3x3(blured_zones, left_p), av_col_3x3(
                     blured_zones, middle_p), av_col_3x3(blured_zones, right_p)
-                # print(l,m,r)
+                #print(l,m,r)
                 if l > m and l > r:
                     sign_type = 'Right'
                 elif m > l and m > r:
@@ -203,9 +203,31 @@ def get_road(frame):
 
     return cnt_simple, cnt_oi
 
+lower_green = np.array([72, 0, 98])
+upper_green = np.array([90, 192, 255])
 
-def get_traffic_light(frame):
-    tl_color = None
+def get_traffic_light(und_frame):
+    tl_color = 'unknow'
+
+    gray = cv2.cvtColor(und_frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (3, 3), 1.0)
+    equal = cv2.equalizeHist(gray)
+    equal = np.where(equal >= 220, 255, 0).astype(np.uint8)
+    br_mask = equal == 0
+    br_mask = np.stack([br_mask]*3, axis=-1)
+    und_frame[br_mask] = 0
+
+    hsv = cv2.cvtColor(und_frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    for contour in contours:
+        if 15< cv2.contourArea(contour) < 80:  # Filter small contours
+            x, y, w, h = cv2.boundingRect(contour)
+            if 0.85 < w/h < 1.15: 
+                if 8 <= w <= 9 and  8 <= h <= 9: 
+                    print(w,h)    
+                    tl_color = 'green'
 
     return tl_color
 
@@ -240,15 +262,18 @@ def average_last_5_x(data):
 def get_actual_sign(dict_of_signs):
     actual = None
     left_sign, right_sign = None, None
+    print(dict_of_signs)
 
 
     left_side = {'Left': 0, 'Straight':0 , 'Right': 0}
     for sign in dict_of_signs['left']:
-        left_side[sign[2]] += 1
+        if sign[2] != 'None':
+            left_side[sign[2]] += 1
 
     right_side = {'Left': 0, 'Straight':0 , 'Right': 0}
     for sign in dict_of_signs['right']:
-        right_side[sign[2]] += 1
+        if sign[2] != 'None':
+            right_side[sign[2]] += 1
 
     left_sign, left_side_count = find_dominant_direction(left_side)
     right_sign, right_side_count = find_dominant_direction(right_side)

@@ -28,6 +28,8 @@ import cv2
 import numpy as np
 import serial
 from tools import *
+import dual_output
+dual_output.enable_dual_output("output.log")
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
 ### SETUP ####
 PERIOD = 0.1
@@ -182,7 +184,7 @@ def move_turn_time(direc):
 def stop_move():
     global bot_state
     print('стоим__________________________')
-    time.sleep(6)
+    time.sleep(0.1)
     bot_state = 0
     send_command(0, 0)
 #
@@ -207,6 +209,13 @@ def road_distor_corr(frame):
         frame, sign_camera_matrix, sign_dist_coeffs, None, new_camera_matrix)
     return undistorted_frame
 
+def traff_distor_corr(frame):
+    h, w = frame.shape[:2]
+    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+        sign_camera_matrix, sign_dist_coeffs, (w, h), 1, (w, h))
+    undistorted_frame = cv2.undistort(
+        frame, sign_camera_matrix, sign_dist_coeffs, None, new_camera_matrix)
+    return undistorted_frame
 
 def detect_aruco(frame, aruco_dict=aruco_dict):
     corners, ids, rej = cv2.aruco.detectMarkers(frame, aruco_dict)
@@ -216,9 +225,12 @@ def detect_aruco(frame, aruco_dict=aruco_dict):
 #
 #
 #
+tr_crop_top, tr_crop_bott, tr_crop_w = 120, 400, 150
 ##############################################
+is_wait_green = False
 
 def main():
+    global is_wait_green
 
     timer = time.time()
     iter_count = 0
@@ -277,6 +289,22 @@ def main():
             road_frame = road_distor_corr(road_frame)
             road_frame = road_frame[int(road_frame.shape[0]*0.5):, :]
 
+            tr_frame = frame[tr_crop_top:720-tr_crop_bott, tr_crop_w:1080-tr_crop_w]
+            tr_frame = traff_distor_corr(tr_frame)
+            top_, bott_, left_, right_ = 90, 180, 430, 310
+            tr_frame = tr_frame[top_:720-tr_crop_bott-bott_, left_:1080-tr_crop_w-right_]
+            cv2.imshow('traffic', tr_frame)
+
+            if is_wait_green:
+                t_light = get_traffic_light(tr_frame)
+                if t_light == 'green':
+                    move_straight_time(time_seconds=10)  #едем по перексртёку вслепую
+                    is_wait_green = False
+                else:
+                    print('wait green')
+                    stop_move()
+                    continue
+
             signs = get_signs(sign_frame) #текущие знаки: кортежи (номер, центр, тип)
             
             cnt_simple, cnt_oi = get_road(road_frame) # списки
@@ -329,12 +357,14 @@ def main():
                         if not was_crossroad:
                             print('на перекрстке')
                             stop_move()
-                            t_light = get_traffic_light(sign_frame)
-                            while t_light != 'green' and 0:
-                                t_light = get_traffic_light(sign_frame)
+                            is_wait_green = True
+                            t_light = get_traffic_light(tr_frame)
+                            if t_light == 'green':
+                                move_straight_time(time_seconds=10)  #едем по перексртёку вслепую
+                                is_wait_green = False
+                            else:
+                                print('wait green')
                                 stop_move()
-
-                            move_straight_time(time_seconds=10)  #едем по перексртёку вслепую
                         else:
                             target_coord = [cnt_oi[0][1], cnt_oi[0][2]]
                             move_line(target_coord)
