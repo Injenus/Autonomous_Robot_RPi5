@@ -106,10 +106,10 @@ bot_state = None  # 0-стоять 1-еду по лини. 2-поворот на
 
 def send_command(left_wheel_speed, right_wheel_speed):
     global driver_is_disabled
+    checksum = left_wheel_speed * 2 + right_wheel_speed * 4
+    message = f"s,{left_wheel_speed},{right_wheel_speed},{checksum},f"
     if not driver_is_disabled:
         try:
-            checksum = left_wheel_speed * 2 + right_wheel_speed * 4
-            message = f"s,{left_wheel_speed},{right_wheel_speed},{checksum},f"
             ser.write(message.encode())
             print(f"Sent: {message}")
         except Exception as e:
