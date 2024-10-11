@@ -229,7 +229,11 @@ def average_last_5_x(data):
     
     x_values = [elem[1][0] for elem in last_elements]
     
-    average_x = sum(x_values) / len(x_values)
+    if len(x_values) != 0:
+        average_x = sum(x_values) / len(x_values)
+    else:
+        print(f'IMPOSS ERR: len(x_values) = 0: {x_values}')
+        exit(-42)
 
     return average_x
 
@@ -249,13 +253,13 @@ def get_actual_sign(dict_of_signs):
     left_sign, left_side_count = find_dominant_direction(left_side)
     right_sign, right_side_count = find_dominant_direction(right_side)
 
-    if left_side is None and right_side is None:
+    if left_sign is None and right_sign is None:
         actual = None
-    elif left_side is None:
+    elif left_sign is None:
         actual = right_sign
-    elif right_side is None:
+    elif right_sign is None:
         actual =  left_sign
-    else:
+    else: #если есть знаки и слевв и справа
         mean_left_offset = average_last_5_x(dict_of_signs['left']) / 360
         mean_right_offset = (720 - average_last_5_x(dict_of_signs['right'])) / 360
         
@@ -265,7 +269,8 @@ def get_actual_sign(dict_of_signs):
             elif left_side_count < right_side_count:
                 actual = right_sign
             else:
-                print(' так не бывает')
+                print('???___так не бывает')
+                actual = right_side # прсто принудительно выбираем правый знак
         elif mean_left_offset < mean_right_offset:
             actual = left_sign
         else:

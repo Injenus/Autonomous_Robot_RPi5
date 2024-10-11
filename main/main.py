@@ -73,9 +73,15 @@ road_dist_coeffs = np.array([road_k1, 0, 0, 0, 0], dtype=np.float32)
 #
 port = '/dev/ttyUSB0'
 baudrate = 115200
-ser = serial.Serial(port, baudrate, timeout=1)
-if ser.is_open:
-    print(f"Serial port {port} is open")
+driver_is_disabled = False
+try:
+    ser = serial.Serial(port, baudrate, timeout=1)
+except:
+    print('!!!!driver отключён!!!!! рабоатет без движения')
+    driver_is_disabled = True
+if not driver_is_disabled:
+    if ser.is_open:
+        print(f"Serial port {port} is open")
 #
 ##### GLOBAL STATE VAR #####
 bot_state = None  # 0-стоять 1-еду по лини. 2-поворот налево по таймингу. 3-поврот направо таймингу. 4-еду прямо потаймингу
@@ -99,13 +105,17 @@ bot_state = None  # 0-стоять 1-еду по лини. 2-поворот на
 
 
 def send_command(left_wheel_speed, right_wheel_speed):
-    try:
-        checksum = left_wheel_speed * 2 + right_wheel_speed * 4
-        message = f"s,{left_wheel_speed},{right_wheel_speed},{checksum},f"
-        ser.write(message.encode())
-        print(f"Sent: {message}")
-    except Exception as e:
-        print(f'ERROR {e}')
+    global driver_is_disabled
+    if not driver_is_disabled:
+        try:
+            checksum = left_wheel_speed * 2 + right_wheel_speed * 4
+            message = f"s,{left_wheel_speed},{right_wheel_speed},{checksum},f"
+            ser.write(message.encode())
+            print(f"Sent: {message}")
+        except Exception as e:
+            print(f'ERROR {e}')
+    else:
+        print('получили команду на отправку, но драйвер отключён: ', message)
 
 def pid(err, prev_err, integral, Kp, Ki, Kd, dt):
     l_speed, r_speed = 0, 0
@@ -267,9 +277,9 @@ def main():
             road_frame = road_distor_corr(road_frame)
             road_frame = road_frame[int(road_frame.shape[0]*0.5):, :]
 
-            signs = get_signs(sign_frame)
+            signs = get_signs(sign_frame) #текущие знаки: кортежи (номер, центр, тип)
             
-            cnt_simple, cnt_oi = get_road(road_frame)
+            cnt_simple, cnt_oi = get_road(road_frame) # списки
 
             print(f'signs {signs}')
             print(f'road {cnt_simple, cnt_oi}')
@@ -277,22 +287,26 @@ def main():
             if len(signs) > 0:
                 for i, sign in enumerate(signs):
                     x, y = sign[1][0], sign[1][1]
-                    if x < 780//2:
+                    if x < 780//2: # добалвяемвм словарь как знак слева или справа
                         dict_of_signs['left'].append(sign)
                     else:
                         dict_of_signs['right'].append(sign)
 
             
-            if len(cnt_oi) == 0:
-                if len(cnt_simple) > 0:
-                    if was_oi:
+            if len(cnt_oi) == 0: # если нет большой области
+                if len(cnt_simple) > 0: # если есть простые области
+                    if was_oi: # и до этого была большая область
+                        #едем по знаку
                         direc = 'хуй' # left or right
                         direc = get_actual_sign(dict_of_signs)
+                        
                         reset_dict(dict_of_signs)   
-
-                        move_turn_time(direc)
+                        if direc is not None:
+                            move_turn_time(direc)
+                        else:
+                            print('была команда по знаку, но знаков не было')
                         was_oi = False
-                    else:                
+                    else: # если большой облати не было, то просто едем по линии               
                         target_coord = [360, 480] # x, y
                         target_id = None
                         for i, simple in enumerate(cnt_simple):
@@ -301,15 +315,15 @@ def main():
                                 target_id = i
                         target_coord[0] = cnt_simple[target_id][1]
                         move_line(target_coord)
-                else:
+                else: # если и обычноых областей нет, то мы ниче не видим
                     print(' мы на перекрёстке???')
 
-            elif len(cnt_oi) == 1:
-                if not was_oi:
+            elif len(cnt_oi) == 1: # есть большая область прям сейчас
+                if not was_oi: # если видим её сечас в первый раз
                     curr_area_oi = cnt_oi[0][3]
                     was_oi = True
 
-                if len(cnt_simple) >= 5:
+                if len(cnt_simple) >= 5: #если мелких линий много
                     mean_y = int(sum(cnt[2] for cnt in cnt_simple)/len(cnt_simple))
                     if mean_y < cnt_oi[0][2]:
                         if not was_crossroad:
