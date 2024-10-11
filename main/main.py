@@ -28,7 +28,7 @@ import cv2
 import numpy as np
 import serial
 from tools import *
-aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
 ### SETUP ####
 PERIOD = 0.1
 
