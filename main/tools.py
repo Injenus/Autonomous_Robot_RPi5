@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import serial
 
+view_scale = 2
+
 def av_col_3x3(image, point):
     x, y = point
 
@@ -95,7 +97,7 @@ def get_signs(frame):
                 print('fuck', mean_values)
                 pass
 
-    cv2.imshow('Signs', blured_zones)
+    cv2.imshow('Signs', re_(blured_zones))
     return sign
 
 def order_points(pts):
@@ -199,7 +201,7 @@ def get_road(frame):
     #         else:
     #             #print('ПОВРОТ 100%')
 
-    cv2.imshow('Road', frame)
+    cv2.imshow('Road', re_(frame))
 
     return cnt_simple, cnt_oi
 
@@ -309,3 +311,8 @@ def reset_dict(d):
         d[key] = []
 
 ###################
+def re_(frame):
+    global view_scale
+    scale = view_scale
+    hw_ = frame.shape
+    return cv2.resize(frame, (hw_[1]//scale, hw_[0]//scale))

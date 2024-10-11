@@ -23,6 +23,7 @@ id, дорожная ситуация, статус робота
 если при старте стоим на oi, то просто едем по линии как обычно бы
 
 """
+from picamera2 import Picamera2
 import time
 import cv2
 import numpy as np
@@ -44,6 +45,31 @@ dt = PERIOD
 cap = cv2.VideoCapture('1080.mp4')
 ar_cam = cv2.VideoCapture('1080.mp4')
 period_aruco = 0.3
+
+wh_sign, wh_road = (1080, 720), (1080, 720)
+cam_road = Picamera2(0)
+cam_aruco = Picamera2(1)
+camera_config = cam_road.create_preview_configuration(main={"format": "RGB888", "size": wh_road})
+cam_road.configure(camera_config)
+camera_config = cam_aruco.create_preview_configuration(main={"format": "RGB888", "size": wh_sign})
+cam_aruco.configure(camera_config)
+cam_road.set_controls({
+        "AwbEnable": 0,  # Отключение автоматического баланса белого
+        "ColourGains": (1.4, 1.5),  # Установка коэффициентов цветовой коррекции
+        "AeEnable": 0,  # Отключение автоматической экспозиции
+        "AnalogueGain": 4.0,  # Установка аналогового усиления (чувствительности)
+        "ExposureTime": 35000  # Установка выдержки в микросекундах (например, 20000 = 20мс)
+    })
+cam_aruco.set_controls({
+        "AwbEnable": 0,  # Отключение автоматического баланса белого
+        "ColourGains": (1.4, 1.5),  # Установка коэффициентов цветовой коррекции
+        "AeEnable": 0,  # Отключение автоматической экспозиции
+        "AnalogueGain": 4.0,  # Установка аналогового усиления (чувствительности)
+        "ExposureTime": 35000  # Установка выдержки в микросекундах (например, 20000 = 20мс)
+    })
+cam_aruco.start()
+cam_road.start()
+
 
 frame_width = 2592
 frame_height = 1944
@@ -184,7 +210,7 @@ def move_turn_time(direc):
 def stop_move():
     global bot_state
     print('стоим__________________________')
-    time.sleep(0.1)
+    #time.sleep(0.1)
     bot_state = 0
     send_command(0, 0)
 #
@@ -253,14 +279,16 @@ def main():
             timer = time.time()
 
             if not is_paused:                
-                ret, frame = cap.read()
+                #ret, frame = cap.read()
+                ret, frame = True, cv2.rotate(cam_road.capture_array(), cv2.ROTATE_180)
                 if not ret:
                     break
 
                 if time.time() - timer_aruco > period_aruco:
                     timer_aruco = time.time()
                     
-                    ret_ar, frame_ar = ar_cam.read()
+                    #ret_ar, frame_ar = ar_cam.read()
+                    ret_ar, frame_ar = True, cv2.rotate(cam_aruco.capture_array(), cv2.ROTATE_180)
                     if not ret_ar:
                         break
 
@@ -278,8 +306,8 @@ def main():
                 elif key == ord('p'):  # Pause/resume on 'p' keyl
                     is_paused = not is_paused
                 continue
-            cv2.imshow('frame', frame)
-            cv2.imshow('aruco', frame_ar)
+            cv2.imshow('frame', re_(frame))
+            cv2.imshow('aruco', re_(frame_ar))
             print('------new cadr------------------')
             ###
             sign_frame = frame[120:720-400, 150:1080-150]
@@ -298,6 +326,7 @@ def main():
             if is_wait_green:
                 t_light = get_traffic_light(tr_frame)
                 if t_light == 'green':
+                    print('g go')
                     move_straight_time(time_seconds=10)  #едем по перексртёку вслепую
                     is_wait_green = False
                 else:
@@ -362,6 +391,7 @@ def main():
                             if t_light == 'green':
                                 move_straight_time(time_seconds=10)  #едем по перексртёку вслепую
                                 is_wait_green = False
+                                print('g go in')
                             else:
                                 print('wait green')
                                 stop_move()
@@ -394,7 +424,7 @@ def main():
 
             try:
                 cv2.circle(road_frame, target_coord, 6, (0,0,255), 2)
-                cv2.imshow('target', road_frame)
+                cv2.imshow('target', re_(road_frame))
             except:
                 pass
             ###
